@@ -21,12 +21,20 @@ buildscript {
 apply plugin: "com.facebook.react.rootproject"
 
 subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            project.android {
+    def configureProject = { p ->
+        if (p.hasProperty('android')) {
+            p.android {
                 compileSdkVersion rootProject.ext.compileSdkVersion
                 buildToolsVersion rootProject.ext.buildToolsVersion
             }
+        }
+    }
+
+    if (it.state.executed) {
+        configureProject(it)
+    } else {
+        it.afterEvaluate {
+            configureProject(it)
         }
     }
 }
