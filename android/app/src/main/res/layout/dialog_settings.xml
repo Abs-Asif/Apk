@@ -1,38 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="@android:color/white">
+    android:padding="24dp">
 
     <TextView
         android:id="@+id/title"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/settings_title"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textStyle="bold"
-        android:textAlignment="center"
-        android:textColor="#1a1a1a"
-        android:layout_marginBottom="20dp" />
+        android:textColor="?android:attr/textColorPrimary"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btnCancelTop"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageButton
+        android:id="@+id/btnCancelTop"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        app:tint="?android:attr/textColorSecondary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="@string/cancel_button" />
 
     <TextView
+        android:id="@+id/pageSizeLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/page_size_label"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"
-        android:textColor="#555"
-        android:layout_marginTop="15dp"
-        android:layout_marginBottom="10dp"
-        android:textAllCaps="true" />
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginTop="20dp"
+        android:textAllCaps="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title" />
 
     <RadioGroup
         android:id="@+id/pageSizeGroup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/pageSizeLabel">
         <RadioButton
             android:id="@+id/radioA4"
             android:layout_width="0dp"
@@ -55,21 +70,25 @@
     </RadioGroup>
 
     <TextView
+        android:id="@+id/marginsLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/margins_label"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"
-        android:textColor="#555"
-        android:layout_marginTop="15dp"
-        android:layout_marginBottom="10dp"
-        android:textAllCaps="true" />
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginTop="16dp"
+        android:textAllCaps="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/pageSizeGroup" />
 
     <RadioGroup
         android:id="@+id/marginsGroup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/marginsLabel">
         <RadioButton
             android:id="@+id/radioStandard"
             android:layout_width="0dp"
@@ -96,65 +115,67 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/font_size_label"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"
-        android:textColor="#555"
-        android:layout_marginTop="15dp"
-        android:layout_marginBottom="10dp"
-        android:textAllCaps="true" />
+        android:textColor="?android:attr/textColorSecondary"
+        android:layout_marginTop="16dp"
+        android:textAllCaps="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/marginsGroup" />
 
     <LinearLayout
+        android:id="@+id/fontSizeControls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/fontSizeLabel">
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMinus"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:text="-"
-            style="?android:attr/buttonStyleSmall" />
-        <Button
+            android:padding="0dp"
+            app:cornerRadius="8dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPlus"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:text="+"
-            android:layout_marginStart="15dp"
-            style="?android:attr/buttonStyleSmall" />
+            android:layout_marginStart="16dp"
+            android:padding="0dp"
+            app:cornerRadius="8dp" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="35dp">
-        <Button
+        android:layout_marginTop="32dp"
+        app:layout_constraintTop_toBottomOf="@id/fontSizeControls">
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSave"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:text="@string/save_button"
-            android:backgroundTint="#34C759"
+            app:backgroundTint="?attr/colorSecondary"
             android:textColor="@android:color/white"
-            android:layout_marginEnd="8dp" />
-        <Button
+            android:layout_marginEnd="8dp"
+            app:cornerRadius="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPrint"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:text="@string/print_button"
-            android:backgroundTint="#007AFF"
+            app:backgroundTint="?attr/colorPrimary"
             android:textColor="@android:color/white"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="8dp"
+            app:cornerRadius="12dp" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnCancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/cancel_button"
-        style="?android:attr/borderlessButtonStyle"
-        android:textColor="#FF3B30"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="25dp" />
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
