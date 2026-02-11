@@ -6,25 +6,30 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.1.20"
+        agpVersion = "8.7.3"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath("com.android.tools.build:gradle:$agpVersion")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 
 subprojects {
     def configureProject = { p ->
         if (p.hasProperty('android')) {
             p.android {
-                compileSdkVersion rootProject.ext.compileSdkVersion
+                compileSdk rootProject.ext.compileSdkVersion
                 buildToolsVersion rootProject.ext.buildToolsVersion
             }
         }
