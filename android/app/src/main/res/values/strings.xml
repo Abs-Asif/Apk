@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">MdToPdf</string>
+    <string name="settings_title">PDF Settings</string>
+    <string name="page_size_label">Page Size</string>
+    <string name="margins_label">Margins</string>
+    <string name="font_size_label">Font Size: %1$dpt</string>
+    <string name="save_button">Save</string>
+    <string name="print_button">Print + Save</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="processing">...</string>
 </resources>
