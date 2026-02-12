@@ -3,14 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="20dp">
+    android:padding="16dp">
 
     <View
         android:id="@+id/dragHandle"
-        android:layout_width="40dp"
+        android:layout_width="32dp"
         android:layout_height="4dp"
         android:background="#DDDDDD"
-        android:layout_marginTop="-8dp"
+        android:layout_marginTop="-4dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -20,7 +20,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/settings_title"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="?android:attr/textColorPrimary"
         android:layout_marginTop="8dp"
@@ -30,8 +30,8 @@
 
     <ImageButton
         android:id="@+id/btnCancelTop"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_close_clear_cancel"
         app:tint="?android:attr/textColorSecondary"
@@ -40,210 +40,235 @@
         app:layout_constraintBottom_toBottomOf="@id/title"
         android:contentDescription="@string/cancel_button" />
 
+    <!-- Page Size -->
     <TextView
         android:id="@+id/pageSizeLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/page_size_label"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="?attr/colorPrimary"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="16dp"
         android:textAllCaps="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/title" />
 
-    <RadioGroup
-        android:id="@+id/pageSizeGroup"
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/pageSizeToggleGroup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
         app:layout_constraintTop_toBottomOf="@id/pageSizeLabel">
-        <RadioButton
-            android:id="@+id/radioA4"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnA4"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="A4"
-            android:checked="true"
-            style="@style/Widget.MaterialComponents.CompoundButton.RadioButton" />
-        <RadioButton
-            android:id="@+id/radioLetter"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLetter"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="Letter"
-            style="@style/Widget.MaterialComponents.CompoundButton.RadioButton" />
-        <RadioButton
-            android:id="@+id/radioLegal"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLegal"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="Legal"
-            style="@style/Widget.MaterialComponents.CompoundButton.RadioButton" />
-    </RadioGroup>
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
+    <!-- Margins -->
     <TextView
         android:id="@+id/marginsLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/margins_label"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="?attr/colorPrimary"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:textAllCaps="true"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/pageSizeGroup" />
+        app:layout_constraintTop_toBottomOf="@id/pageSizeToggleGroup" />
 
-    <RadioGroup
-        android:id="@+id/marginsGroup"
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/marginsToggleGroup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
         app:layout_constraintTop_toBottomOf="@id/marginsLabel">
-        <RadioButton
-            android:id="@+id/radioStandard"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStandard"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="Standard"
-            android:checked="true" />
-        <RadioButton
-            android:id="@+id/radioMinimal"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMinimal"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Minimal" />
-        <RadioButton
-            android:id="@+id/radioNone"
+            android:text="Minimal"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNone"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="None" />
-    </RadioGroup>
+            android:text="None"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
+    <!-- Alignment -->
     <TextView
         android:id="@+id/alignmentLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/alignment_label"
-        android:textSize="13sp"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="?attr/colorPrimary"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:textAllCaps="true"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/marginsGroup" />
+        app:layout_constraintTop_toBottomOf="@id/marginsToggleGroup" />
 
-    <RadioGroup
-        android:id="@+id/alignmentGroup"
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/alignmentToggleGroup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
+        app:singleSelection="true"
+        app:selectionRequired="true"
         app:layout_constraintTop_toBottomOf="@id/alignmentLabel">
-        <RadioButton
-            android:id="@+id/radioLeft"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLeft"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Left" />
-        <RadioButton
-            android:id="@+id/radioCenter"
+            android:text="Left"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCenter"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Center" />
-        <RadioButton
-            android:id="@+id/radioRight"
+            android:text="Center"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRight"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Right" />
-        <RadioButton
-            android:id="@+id/radioJustify"
+            android:text="Right"
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnJustify"
+            style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
             android:layout_weight="1.2"
             android:layout_height="wrap_content"
             android:text="Justify"
-            android:checked="true" />
-    </RadioGroup>
+            android:insetTop="0dp"
+            android:insetBottom="0dp" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
 
+    <!-- Font Size -->
     <TextView
-        android:id="@+id/fontSizeLabel"
+        android:id="@+id/fontSizeTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/font_size_label"
-        android:textSize="13sp"
+        android:text="@string/font_size_title"
+        android:textSize="12sp"
         android:textStyle="bold"
         android:textColor="?attr/colorPrimary"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:textAllCaps="true"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/alignmentGroup" />
+        app:layout_constraintTop_toBottomOf="@id/alignmentToggleGroup" />
 
     <LinearLayout
         android:id="@+id/fontSizeControls"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="8dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/fontSizeLabel">
+        android:gravity="center_vertical"
+        android:layout_marginTop="4dp"
+        app:layout_constraintTop_toBottomOf="@id/fontSizeTitle">
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMinus"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="56dp"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="48dp"
             android:layout_height="48dp"
             android:text="-"
             android:textSize="20sp"
             android:padding="0dp"
-            app:cornerRadius="12dp"
-            app:strokeColor="?attr/colorPrimary" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="12dp" />
+
+        <TextView
+            android:id="@+id/fontSizeValue"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="12"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textColor="?android:attr/textColorPrimary" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPlus"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="56dp"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="48dp"
             android:layout_height="48dp"
             android:text="+"
             android:textSize="20sp"
-            android:layout_marginStart="16dp"
             android:padding="0dp"
-            app:cornerRadius="12dp"
-            app:strokeColor="?attr/colorPrimary" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="12dp" />
     </LinearLayout>
 
-    <LinearLayout
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSave"
+        style="@style/Widget.Material3.Button"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="24dp"
-        app:layout_constraintTop_toBottomOf="@id/fontSizeControls">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSave"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="56dp"
-            android:text="@string/save_button"
-            app:backgroundTint="?attr/colorSecondary"
-            android:textColor="@android:color/white"
-            android:layout_marginEnd="8dp"
-            app:cornerRadius="16dp"
-            app:elevation="4dp" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPrint"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="56dp"
-            android:text="@string/print_button"
-            app:backgroundTint="?attr/colorPrimary"
-            android:textColor="@android:color/white"
-            android:layout_marginStart="8dp"
-            app:cornerRadius="16dp"
-            app:elevation="4dp" />
-    </LinearLayout>
+        android:layout_height="56dp"
+        android:text="@string/save_button"
+        android:layout_marginTop="16dp"
+        app:cornerRadius="16dp"
+        app:layout_constraintTop_toBottomOf="@id/fontSizeControls" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

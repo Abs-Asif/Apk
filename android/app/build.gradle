@@ -6,9 +6,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.mdtopdf"
+    namespace "com.md2pdf.abdullah"
     defaultConfig {
-        applicationId "com.mdtopdf"
+        applicationId "com.md2pdf.abdullah"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -49,5 +49,12 @@ dependencies {
     implementation "androidx.constraintlayout:constraintlayout:2.1.4"
 
     // Markdown parsing
-    implementation "org.commonmark:commonmark:0.21.0"
+    def commonmarkVersion = "0.24.0"
+    implementation "org.commonmark:commonmark:${commonmarkVersion}"
+    implementation "org.commonmark:commonmark-ext-gfm-strikethrough:${commonmarkVersion}"
+    implementation "org.commonmark:commonmark-ext-gfm-tables:${commonmarkVersion}"
+    implementation "org.commonmark:commonmark-ext-task-list-items:${commonmarkVersion}"
+    implementation "org.commonmark:commonmark-ext-autolink:${commonmarkVersion}"
+    implementation "org.commonmark:commonmark-ext-heading-anchor:${commonmarkVersion}"
+    implementation "org.commonmark:commonmark-ext-footnotes:${commonmarkVersion}"
 }
