@@ -26,6 +26,14 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import android.print.PrintAttributes
 import android.print.PrintManager
+import android.print.PageRange
+import android.print.PrintDocumentAdapter
+import android.print.PrintDocumentInfo
+import android.os.CancellationSignal
+import android.os.ParcelFileDescriptor
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,6 +43,12 @@ class MainActivity : AppCompatActivity() {
     private var alignment = "Justify"
     private var fontSize = 12
     private var isProcessing = false
+
+    private fun getFormattedFileName(): String {
+        val sdf = SimpleDateFormat("dd-MM-yyyy_hh:mma", Locale.US)
+        val dateStr = sdf.format(Date()).lowercase()
+        return "PDF_$dateStr.pdf"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -186,82 +200,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun savePdfInBackground(html: String, onComplete: () -> Unit) {
-        val webView = WebView(this)
-        webView.settings.allowFileAccess = true
-        val root = findViewById<ViewGroup>(R.id.activity_main_root)
+        val fileName = getFormattedFileName()
+        val converter = PdfConverter(this, fontSize, pageSize, margin, alignment)
 
-        val (width, height) = when (pageSize) {
-            "Letter" -> Pair(612, 792)
-            "Legal" -> Pair(612, 1008)
-            else -> Pair(595, 842) // A4
-        }
-
-        webView.layoutParams = ViewGroup.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT)
-        webView.visibility = View.INVISIBLE
-        root.addView(webView)
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                webView.postDelayed({
-                    webView.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
-                    webView.layout(0, 0, webView.measuredWidth, webView.measuredHeight)
-
-                    val totalHeight = webView.measuredHeight
-                    if (totalHeight <= 0) {
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Content is empty", Toast.LENGTH_SHORT).show()
-                            updateLoadingState(false)
-                            isProcessing = false
-                            root.removeView(webView)
+        // We can run this in a background thread for even better performance
+        Thread {
+            converter.convert(sharedText ?: "", cacheDir, fileName, object : PdfConverter.Callback {
+                override fun onSuccess(file: File) {
+                    val finalUri = saveToDownloads(file, fileName)
+                    runOnUiThread {
+                        if (finalUri != null) {
+                            Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
                         }
-                        return@postDelayed
+                        onComplete()
                     }
+                }
 
-                    val document = PdfDocument()
-                    var pageNumber = 1
-                    var currentHeight = 0
-
-                    while (currentHeight < totalHeight) {
-                        val pageInfo = PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
-                        val page = document.startPage(pageInfo)
-                        val canvas = page.canvas
-                        canvas.translate(0f, -currentHeight.toFloat())
-                        webView.draw(canvas)
-                        document.finishPage(page)
-                        currentHeight += height
-                        pageNumber++
+                override fun onFailure(error: String) {
+                    runOnUiThread {
+                        Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
+                        updateLoadingState(false)
+                        isProcessing = false
                     }
-
-                    val jobName = "MD_Export_${System.currentTimeMillis()}"
-                    val tempFile = File(cacheDir, "$jobName.pdf")
-                    try {
-                        FileOutputStream(tempFile).use { out ->
-                            document.writeTo(out)
-                        }
-                        document.close()
-                        val finalUri = saveToDownloads(tempFile, "$jobName.pdf")
-                        runOnUiThread {
-                            if (finalUri != null) {
-                                Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
-                            }
-                            root.removeView(webView)
-                            onComplete()
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                            updateLoadingState(false)
-                            isProcessing = false
-                            root.removeView(webView)
-                        }
-                    }
-                }, 500)
-            }
-        }
-        webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
+                }
+            })
+        }.start()
     }
+
 
     private fun saveToDownloads(file: File, fileName: String): Uri? {
         val resolver = contentResolver
@@ -308,7 +273,8 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
-                val jobName = "MD_Export_${System.currentTimeMillis()}"
+                val fileName = getFormattedFileName()
+                val jobName = fileName.replace(".pdf", "")
                 val printAdapter = webView.createPrintDocumentAdapter(jobName)
 
                 val attributes = PrintAttributes.Builder()
@@ -317,6 +283,7 @@ class MainActivity : AppCompatActivity() {
                         "Legal" -> PrintAttributes.MediaSize.NA_LEGAL
                         else -> PrintAttributes.MediaSize.ISO_A4
                     })
+                    .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
                     .build()
 
                 printManager.print(jobName, printAdapter, attributes)
@@ -376,7 +343,7 @@ class MainActivity : AppCompatActivity() {
                     line-height: 1.6;
                     color: #1a1a1a;
                     background-color: white;
-                    margin: ${if (isPreview) selectedMargin else "0"};
+                    margin: $selectedMargin;
                     text-align: ${textAlign.lowercase()};
                   }
                   $previewStyles
