@@ -11,8 +11,8 @@ android {
         applicationId "com.md2pdf.abdullah"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 110
+        versionName "1.1.0"
     }
     signingConfigs {
         debug {
