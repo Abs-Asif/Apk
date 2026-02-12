@@ -1,4 +1,4 @@
-package com.mdtopdf
+package com.md2pdf.abdullah
 
 import android.content.ContentValues
 import android.content.Context
@@ -14,11 +14,17 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ImageButton
-import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
+import org.commonmark.ext.autolink.AutolinkExtension
+import org.commonmark.ext.footnotes.FootnotesExtension
+import org.commonmark.ext.heading.anchor.HeadingAnchorExtension
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
+import org.commonmark.ext.gfm.tables.TablesExtension
+import org.commonmark.ext.task.list.items.TaskListItemsExtension
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 import java.io.File
@@ -76,59 +82,86 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        val fontSizeLabel = findViewById<TextView>(R.id.fontSizeLabel)
+        val fontSizeValue = findViewById<TextView>(R.id.fontSizeValue)
         val btnMinus = findViewById<View>(R.id.btnMinus)
         val btnPlus = findViewById<View>(R.id.btnPlus)
         val btnSave = findViewById<MaterialButton>(R.id.btnSave)
-        val btnPrint = findViewById<MaterialButton>(R.id.btnPrint)
         val btnCancelTop = findViewById<ImageButton>(R.id.btnCancelTop)
-        val pageSizeGroup = findViewById<RadioGroup>(R.id.pageSizeGroup)
-        val marginsGroup = findViewById<RadioGroup>(R.id.marginsGroup)
-        val alignmentGroup = findViewById<RadioGroup>(R.id.alignmentGroup)
+        val pageSizeToggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.pageSizeToggleGroup)
+        val marginsToggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.marginsToggleGroup)
+        val alignmentToggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.alignmentToggleGroup)
 
-        fontSizeLabel.text = getString(R.string.font_size_label, fontSize)
+        fontSizeValue.text = fontSize.toString()
 
         btnMinus.setOnClickListener {
             fontSize = maxOf(8, fontSize - 1)
-            fontSizeLabel.text = getString(R.string.font_size_label, fontSize)
+            fontSizeValue.text = fontSize.toString()
             updatePreview()
         }
 
         btnPlus.setOnClickListener {
             fontSize = minOf(30, fontSize + 1)
-            fontSizeLabel.text = getString(R.string.font_size_label, fontSize)
+            fontSizeValue.text = fontSize.toString()
             updatePreview()
         }
 
-        pageSizeGroup.setOnCheckedChangeListener { _, checkedId ->
-            pageSize = when (checkedId) {
-                R.id.radioA4 -> "A4"
-                R.id.radioLetter -> "Letter"
-                R.id.radioLegal -> "Legal"
-                else -> "A4"
+        pageSizeToggleGroup.check(when(pageSize) {
+            "A4" -> R.id.btnA4
+            "Letter" -> R.id.btnLetter
+            "Legal" -> R.id.btnLegal
+            else -> R.id.btnA4
+        })
+
+        pageSizeToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                pageSize = when (checkedId) {
+                    R.id.btnA4 -> "A4"
+                    R.id.btnLetter -> "Letter"
+                    R.id.btnLegal -> "Legal"
+                    else -> "A4"
+                }
+                updatePreview()
             }
-            updatePreview()
         }
 
-        marginsGroup.setOnCheckedChangeListener { _, checkedId ->
-            margin = when (checkedId) {
-                R.id.radioStandard -> "Standard"
-                R.id.radioMinimal -> "Minimal"
-                R.id.radioNone -> "None"
-                else -> "Standard"
+        marginsToggleGroup.check(when(margin) {
+            "Standard" -> R.id.btnStandard
+            "Minimal" -> R.id.btnMinimal
+            "None" -> R.id.btnNone
+            else -> R.id.btnStandard
+        })
+
+        marginsToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                margin = when (checkedId) {
+                    R.id.btnStandard -> "Standard"
+                    R.id.btnMinimal -> "Minimal"
+                    R.id.btnNone -> "None"
+                    else -> "Standard"
+                }
+                updatePreview()
             }
-            updatePreview()
         }
 
-        alignmentGroup.setOnCheckedChangeListener { _, checkedId ->
-            alignment = when (checkedId) {
-                R.id.radioLeft -> "Left"
-                R.id.radioCenter -> "Center"
-                R.id.radioRight -> "Right"
-                R.id.radioJustify -> "Justify"
-                else -> "Justify"
+        alignmentToggleGroup.check(when(alignment) {
+            "Left" -> R.id.btnLeft
+            "Center" -> R.id.btnCenter
+            "Right" -> R.id.btnRight
+            "Justify" -> R.id.btnJustify
+            else -> R.id.btnJustify
+        })
+
+        alignmentToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                alignment = when (checkedId) {
+                    R.id.btnLeft -> "Left"
+                    R.id.btnCenter -> "Center"
+                    R.id.btnRight -> "Right"
+                    R.id.btnJustify -> "Justify"
+                    else -> "Justify"
+                }
+                updatePreview()
             }
-            updatePreview()
         }
 
         updatePreview()
@@ -136,12 +169,6 @@ class MainActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             if (!isProcessing) {
                 handleSave()
-            }
-        }
-
-        btnPrint.setOnClickListener {
-            if (!isProcessing) {
-                handlePrint()
             }
         }
 
@@ -167,34 +194,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handlePrint() {
-        val text = sharedText ?: return
-        val html = markdownToHtml(text, pageSize, margin, fontSize, alignment)
-        isProcessing = true
-        updateLoadingState(true)
-        savePdfInBackground(html) {
-            doPrint(html)
-        }
-    }
 
     private fun updatePreview() {
         val text = sharedText ?: ""
         val html = markdownToHtml(text, pageSize, margin, fontSize, alignment, isPreview = true)
         val previewWebView = findViewById<WebView>(R.id.previewWebView)
         previewWebView?.settings?.allowFileAccess = true
+        previewWebView?.settings?.javaScriptEnabled = true
         previewWebView?.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
     }
 
     private fun updateLoadingState(loading: Boolean) {
         val btnSave = findViewById<MaterialButton>(R.id.btnSave)
-        val btnPrint = findViewById<MaterialButton>(R.id.btnPrint)
         if (loading) {
             btnSave.isEnabled = false
-            btnPrint.isEnabled = false
             btnSave.text = getString(R.string.processing)
         } else {
             btnSave.isEnabled = true
-            btnPrint.isEnabled = true
             btnSave.text = getString(R.string.save_button)
         }
     }
@@ -203,28 +219,25 @@ class MainActivity : AppCompatActivity() {
         val fileName = getFormattedFileName()
         val converter = PdfConverter(this, fontSize, pageSize, margin, alignment)
 
-        // We can run this in a background thread for even better performance
-        Thread {
-            converter.convert(sharedText ?: "", cacheDir, fileName, object : PdfConverter.Callback {
-                override fun onSuccess(file: File) {
-                    val finalUri = saveToDownloads(file, fileName)
-                    runOnUiThread {
-                        if (finalUri != null) {
-                            Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
-                        }
-                        onComplete()
+        converter.convert(html, cacheDir, fileName, object : PdfConverter.Callback {
+            override fun onSuccess(file: File) {
+                val finalUri = saveToDownloads(file, fileName)
+                runOnUiThread {
+                    if (finalUri != null) {
+                        Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
                     }
+                    onComplete()
                 }
+            }
 
-                override fun onFailure(error: String) {
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
-                        updateLoadingState(false)
-                        isProcessing = false
-                    }
+            override fun onFailure(error: String) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
+                    updateLoadingState(false)
+                    isProcessing = false
                 }
-            })
-        }.start()
+            }
+        })
     }
 
 
@@ -267,37 +280,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun doPrint(html: String) {
-        val webView = WebView(this)
-        webView.settings.allowFileAccess = true
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView?, url: String?) {
-                val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
-                val fileName = getFormattedFileName()
-                val jobName = fileName.replace(".pdf", "")
-                val printAdapter = webView.createPrintDocumentAdapter(jobName)
-
-                val attributes = PrintAttributes.Builder()
-                    .setMediaSize(when(pageSize) {
-                        "Letter" -> PrintAttributes.MediaSize.NA_LETTER
-                        "Legal" -> PrintAttributes.MediaSize.NA_LEGAL
-                        else -> PrintAttributes.MediaSize.ISO_A4
-                    })
-                    .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-                    .build()
-
-                printManager.print(jobName, printAdapter, attributes)
-                isProcessing = false
-                finishAndRemoveTask()
-            }
-        }
-        webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
-    }
 
     private fun markdownToHtml(text: String, pSize: String, mType: String, fSize: Int, textAlign: String, isPreview: Boolean = false): String {
-        val parser = Parser.builder().build()
+        val extensions = listOf(
+            TablesExtension.create(),
+            StrikethroughExtension.create(),
+            TaskListItemsExtension.create(),
+            AutolinkExtension.create(),
+            HeadingAnchorExtension.create(),
+            FootnotesExtension.create()
+        )
+        val parser = Parser.builder().extensions(extensions).build()
         val document = parser.parse(text)
-        val renderer = HtmlRenderer.builder().build()
+        val renderer = HtmlRenderer.builder().extensions(extensions).build()
         val content = renderer.render(document)
 
         val marginMap = mapOf(
@@ -328,6 +323,9 @@ class MainActivity : AppCompatActivity() {
               <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+                <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+                <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
                 <style>
                   @font-face {
                     font-family: 'Bornomala';
@@ -335,7 +333,7 @@ class MainActivity : AppCompatActivity() {
                   }
                   @page {
                     size: $selectedSize;
-                    margin: $selectedMargin;
+                    margin: 0;
                   }
                   body {
                     font-size: ${fSize}pt;
@@ -347,40 +345,60 @@ class MainActivity : AppCompatActivity() {
                     text-align: ${textAlign.lowercase()};
                   }
                   $previewStyles
+                  h1, h2, h3, h4, h5, h6 { color: #333; margin-top: 1.5em; margin-bottom: 0.5em; }
                   img { max-width: 100%; height: auto; }
                   pre {
-                    background: #f4f4f4;
-                    padding: 10px;
-                    border-radius: 5px;
+                    background: #f6f8fa;
+                    padding: 16px;
+                    border-radius: 8px;
                     overflow-x: auto;
                     white-space: pre-wrap;
                     word-wrap: break-word;
+                    border: 1px solid #dfe1e4;
                   }
                   code {
-                    font-family: monospace;
-                    background: #f4f4f4;
-                    padding: 2px 4px;
+                    font-family: 'Courier New', Courier, monospace;
+                    background: #f6f8fa;
+                    padding: 0.2em 0.4em;
                     border-radius: 3px;
+                    font-size: 90%;
+                  }
+                  pre code {
+                    background: transparent;
+                    padding: 0;
                   }
                   blockquote {
-                    border-left: 4px solid #ddd;
-                    padding-left: 15px;
-                    color: #777;
-                    font-style: italic;
+                    border-left: 4px solid #d0d7de;
+                    padding: 0 1em;
+                    color: #57606a;
+                    margin: 0 0 16px 0;
                   }
                   table {
                     border-collapse: collapse;
                     width: 100%;
-                    margin-bottom: 20px;
+                    margin-bottom: 16px;
                   }
                   th, td {
-                    border: 1px solid #ddd;
-                    padding: 8px;
-                    text-align: left;
+                    border: 1px solid #d0d7de;
+                    padding: 6px 13px;
                   }
+                  tr:nth-child(even) { background-color: #f6f8fa; }
                   th {
-                    background-color: #f2f2f2;
+                    background-color: #f6f8fa;
+                    font-weight: 600;
                   }
+                  hr {
+                    height: 0.25em;
+                    padding: 0;
+                    margin: 24px 0;
+                    background-color: #d0d7de;
+                    border: 0;
+                  }
+                  a { color: #0969da; text-decoration: none; }
+                  a:hover { text-decoration: underline; }
+                  .task-list-item { list-style-type: none; }
+                  .task-list-item input { margin-right: 0.5em; }
+                  .footnotes { font-size: 80%; color: #57606a; border-top: 1px solid #d0d7de; margin-top: 40px; }
                 </style>
               </head>
               <body>
