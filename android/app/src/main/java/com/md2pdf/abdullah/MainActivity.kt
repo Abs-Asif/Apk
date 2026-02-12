@@ -69,16 +69,125 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
-            if (sharedText != null) {
-                setupUI()
-            } else {
-                finishAndRemoveTask()
+        if (intent == null) {
+            finishAndRemoveTask()
+            return
+        }
+
+        val action = intent.action
+        val type = intent.type
+
+        when (action) {
+            Intent.ACTION_SEND -> {
+                if (type == "text/plain" && intent.hasExtra(Intent.EXTRA_TEXT)) {
+                    sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+                    if (sharedText != null) setupUI() else finishAndRemoveTask()
+                } else {
+                    val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+                    }
+                    if (uri != null) readTextFromUri(uri) else finishAndRemoveTask()
+                }
             }
-        } else {
+            Intent.ACTION_VIEW -> {
+                val uri = intent.data
+                if (uri != null) readTextFromUri(uri) else finishAndRemoveTask()
+            }
+            else -> finishAndRemoveTask()
+        }
+    }
+
+    private fun readTextFromUri(uri: Uri) {
+        try {
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                val text = inputStream.bufferedReader().use { it.readText() }
+                val fileName = getFileName(uri)
+                if (fileName?.endsWith(".csv", ignoreCase = true) == true) {
+                    sharedText = csvToHtmlTable(text)
+                } else {
+                    sharedText = text
+                }
+                setupUI()
+            } ?: finishAndRemoveTask()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to read file: ${e.message}", Toast.LENGTH_SHORT).show()
             finishAndRemoveTask()
         }
+    }
+
+    private fun getFileName(uri: Uri): String? {
+        var name: String? = null
+        if (uri.scheme == "content") {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val index = it.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                    if (index != -1) name = it.getString(index)
+                }
+            }
+        }
+        if (name == null) {
+            name = uri.path
+            val cut = name?.lastIndexOf('/') ?: -1
+            if (cut != -1) name = name?.substring(cut + 1)
+        }
+        return name
+    }
+
+    private fun csvToHtmlTable(csvText: String): String {
+        val rows = csvText.lines().filter { it.isNotBlank() }
+        if (rows.isEmpty()) return ""
+
+        val sb = StringBuilder()
+        sb.append("<table>\n")
+        rows.forEachIndexed { index, row ->
+            sb.append("  <tr>\n")
+            val columns = parseCsvRow(row)
+            columns.forEach { col ->
+                val tag = if (index == 0) "th" else "td"
+                sb.append("    <$tag>${escapeHtml(col)}</$tag>\n")
+            }
+            sb.append("  </tr>\n")
+        }
+        sb.append("</table>")
+        return sb.toString()
+    }
+
+    private fun parseCsvRow(row: String): List<String> {
+        val result = mutableListOf<String>()
+        val current = StringBuilder()
+        var inQuotes = false
+        var i = 0
+        while (i < row.length) {
+            val char = row[i]
+            if (char == '\"') {
+                if (inQuotes && i + 1 < row.length && row[i + 1] == '\"') {
+                    current.append('\"')
+                    i++
+                } else {
+                    inQuotes = !inQuotes
+                }
+            } else if (char == ',' && !inQuotes) {
+                result.add(current.toString().trim())
+                current.setLength(0)
+            } else {
+                current.append(char)
+            }
+            i++
+        }
+        result.add(current.toString().trim())
+        return result
+    }
+
+    private fun escapeHtml(text: String): String {
+        return text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
     }
 
     private fun setupUI() {
@@ -87,6 +196,7 @@ class MainActivity : AppCompatActivity() {
         val btnPlus = findViewById<View>(R.id.btnPlus)
         val btnSave = findViewById<MaterialButton>(R.id.btnSave)
         val btnCancelTop = findViewById<ImageButton>(R.id.btnCancelTop)
+        val btnInfo = findViewById<ImageButton>(R.id.btnInfo)
         val pageSizeToggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.pageSizeToggleGroup)
         val marginsToggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.marginsToggleGroup)
         val alignmentToggleGroup = findViewById<MaterialButtonToggleGroup>(R.id.alignmentToggleGroup)
@@ -174,6 +284,10 @@ class MainActivity : AppCompatActivity() {
             finishAndRemoveTask()
         }
 
+        btnInfo?.setOnClickListener {
+            showCreditsDialog()
+        }
+
         findViewById<View>(R.id.background_dim)?.setOnClickListener {
             finishAndRemoveTask()
         }
@@ -238,6 +352,18 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+
+    private fun showCreditsDialog() {
+        val message = "Developed by Abdullah Bari\n" +
+                "Portfolio: abdullh.ami.bd\n" +
+                "Call: 01738745285, 01538310838 (WhatsApp)"
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Credits")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show()
+    }
 
     private fun saveToDownloads(file: File, fileName: String): Uri? {
         val resolver = contentResolver
@@ -306,30 +432,58 @@ class MainActivity : AppCompatActivity() {
 
         val selectedSize = sizeMap[pSize] ?: "A4"
         val selectedMargin = marginMap[mType] ?: "20mm"
+
         val pageHeight = when(pSize) {
             "Letter" -> "279.4mm"
             "Legal" -> "355.6mm"
             else -> "297mm"
         }
+        val pageWidth = when(pSize) {
+            "Letter" -> "215.9mm"
+            "Legal" -> "215.9mm"
+            else -> "210mm"
+        }
+
+        // 96 DPI: 1mm = 3.7795px
+        val viewportWidth = when(pSize) {
+            "Letter", "Legal" -> 816
+            else -> 794
+        }
+
+        val viewportContent = "width=$viewportWidth"
 
         val previewStyles = if (isPreview) """
-            body {
-                width: 100%;
-                margin: 0;
-                padding: $selectedMargin;
-                box-sizing: border-box;
-                overflow-x: hidden;
-                background-image: linear-gradient(to bottom, transparent calc($pageHeight - 2px), #ccc calc($pageHeight - 2px), #ccc $pageHeight, transparent $pageHeight);
-                background-size: 100% $pageHeight;
+            html {
+                background-color: #f0f0f0;
+                display: flex;
+                justify-content: center;
             }
-        """.trimIndent() else ""
+            body {
+                width: $pageWidth !important;
+                margin: 20px 0 !important;
+                padding: $selectedMargin !important;
+                box-sizing: border-box !important;
+                background-color: white;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                background-image: linear-gradient(to bottom, transparent calc($pageHeight - 2px), #ddd calc($pageHeight - 2px), #ddd $pageHeight, transparent $pageHeight);
+                background-size: 100% $pageHeight;
+                min-height: $pageHeight;
+            }
+        """.trimIndent() else """
+            body {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box !important;
+            }
+        """.trimIndent()
 
         return """
             <!DOCTYPE html>
             <html>
               <head>
                 <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta name="viewport" content="$viewportContent">
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
                 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
                 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
