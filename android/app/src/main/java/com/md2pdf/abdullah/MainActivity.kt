@@ -3,22 +3,32 @@ package com.md2pdf.abdullah
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.pdf.PdfDocument
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.card.MaterialCardView
 import org.commonmark.ext.autolink.AutolinkExtension
 import org.commonmark.ext.footnotes.FootnotesExtension
 import org.commonmark.ext.heading.anchor.HeadingAnchorExtension
@@ -49,6 +59,16 @@ class MainActivity : AppCompatActivity() {
     private var alignment = "Justify"
     private var fontSize = 12
     private var isProcessing = false
+    private var previewHandler = Handler(Looper.getMainLooper())
+    private var previewRunnable: Runnable? = null
+
+    private fun Int.dpToPx(): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            this.toFloat(),
+            resources.displayMetrics
+        ).toInt()
+    }
 
     private fun getFormattedFileName(): String {
         val sdf = SimpleDateFormat("dd MMMM yyyy hh_mm_ss a", Locale.US)
@@ -308,12 +328,83 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun updatePreview() {
+        previewRunnable?.let { previewHandler.removeCallbacks(it) }
+        previewRunnable = Runnable {
+            generatePreviewPdf()
+        }
+        previewHandler.postDelayed(previewRunnable!!, 500)
+    }
+
+    private fun generatePreviewPdf() {
         val text = sharedText ?: ""
-        val html = markdownToHtml(text, pageSize, margin, fontSize, alignment, isPreview = true)
-        val previewWebView = findViewById<WebView>(R.id.previewWebView)
-        previewWebView?.settings?.allowFileAccess = true
-        previewWebView?.settings?.javaScriptEnabled = true
-        previewWebView?.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
+        val html = markdownToHtml(text, pageSize, margin, fontSize, alignment, isPreview = false)
+        val fileName = "preview_temp.pdf"
+        val converter = PdfConverter(this, fontSize, pageSize, margin, alignment)
+
+        converter.convert(html, cacheDir, fileName, object : PdfConverter.Callback {
+            override fun onSuccess(file: File) {
+                runOnUiThread {
+                    renderPdfPreview(file)
+                }
+            }
+            override fun onFailure(error: String) {
+                // Ignore preview failures
+            }
+        }, delayMs = 500)
+    }
+
+    private fun renderPdfPreview(file: File) {
+        val container = findViewById<LinearLayout>(R.id.previewContainer) ?: return
+        container.removeAllViews()
+
+        try {
+            val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val renderer = PdfRenderer(pfd)
+
+            val containerWidth = container.width.takeIf { it > 0 } ?: (resources.displayMetrics.widthPixels - 48.dpToPx())
+
+            for (i in 0 until renderer.pageCount) {
+                val page = renderer.openPage(i)
+
+                val width = containerWidth
+                val height = (width.toFloat() / page.width * page.height).toInt()
+
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+
+                val card = MaterialCardView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(0, 0, 0, 16.dpToPx())
+                    }
+                    radius = 4.dpToPx().toFloat()
+                    cardElevation = 4.dpToPx().toFloat()
+                    setCardBackgroundColor(Color.WHITE)
+                    preventCornerOverlap = true
+                    useCompatPadding = true
+                }
+
+                val imageView = ImageView(this).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    adjustViewBounds = true
+                    setImageBitmap(bitmap)
+                }
+
+                card.addView(imageView)
+                container.addView(card)
+
+                page.close()
+            }
+            renderer.close()
+            pfd.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun updateLoadingState(loading: Boolean) {
@@ -354,15 +445,36 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun showCreditsDialog() {
-        val message = "Developed by Abdullah Bari\n" +
-                "Portfolio: abdullh.ami.bd\n" +
-                "Call: 01738745285, 01538310838 (WhatsApp)"
+        val dialogView = layoutInflater.inflate(R.layout.dialog_credits, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Credits")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
+        dialogView.findViewById<View>(R.id.portfolioLink).setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://abdullah.ami.bd"))
+            startActivity(intent)
+        }
+
+        dialogView.findViewById<View>(R.id.btnCall1).setOnClickListener {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01738745285"))
+            startActivity(intent)
+        }
+
+        dialogView.findViewById<View>(R.id.btnCall2).setOnClickListener {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:01538310838"))
+            startActivity(intent)
+        }
+
+        dialogView.findViewById<View>(R.id.btnWhatsApp).setOnClickListener {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/8801538310838"))
+            startActivity(intent)
+        }
+
+        dialogView.findViewById<View>(R.id.btnOk).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun saveToDownloads(file: File, fileName: String): Uri? {
