@@ -22,21 +22,14 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
+            android:id="@+id/previewContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="24dp"
-            app:cardCornerRadius="4dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="@android:color/white">
-
-            <WebView
-                android:id="@+id/previewWebView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="500dp" />
-
-        </com.google.android.material.card.MaterialCardView>
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="16dp" />
     </ScrollView>
 
     <com.google.android.material.card.MaterialCardView

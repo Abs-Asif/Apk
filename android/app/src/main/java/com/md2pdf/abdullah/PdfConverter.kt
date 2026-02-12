@@ -17,7 +17,7 @@ class PdfConverter(private val context: Context, private val fontSize: Int, priv
         fun onFailure(error: String)
     }
 
-    fun convert(html: String, path: File, fileName: String, callback: Callback) {
+    fun convert(html: String, path: File, fileName: String, callback: Callback, delayMs: Long = 1500) {
         // WebView must be created on the main thread
         Handler(Looper.getMainLooper()).post {
             val webView = WebView(context)
@@ -29,7 +29,7 @@ class PdfConverter(private val context: Context, private val fontSize: Int, priv
                     // Give some time for KaTeX/MathJax to render
                     Handler(Looper.getMainLooper()).postDelayed({
                         startPrint(webView, fileName, path, callback)
-                    }, 1500)
+                    }, delayMs)
                 }
             }
             webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
