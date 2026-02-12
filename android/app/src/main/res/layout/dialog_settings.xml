@@ -131,15 +131,6 @@
             android:text="Minimal"
             android:insetTop="0dp"
             android:insetBottom="0dp" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnNone"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="None"
-            android:insetTop="0dp"
-            android:insetBottom="0dp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <!-- Alignment -->
@@ -170,7 +161,9 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Left"
+            app:icon="@drawable/ic_align_left"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp" />
         <com.google.android.material.button.MaterialButton
@@ -179,7 +172,9 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Center"
+            app:icon="@drawable/ic_align_center"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp" />
         <com.google.android.material.button.MaterialButton
@@ -188,16 +183,20 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Right"
+            app:icon="@drawable/ic_align_right"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnJustify"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="0dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Justify"
+            app:icon="@drawable/ic_align_justify"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>

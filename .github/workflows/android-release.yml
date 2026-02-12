@@ -22,6 +22,14 @@ jobs:
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
 
+      - name: Update Version
+        run: |
+          VERSION_NAME="1.1.${{ github.run_number }}"
+          VERSION_CODE=$((1100 + ${{ github.run_number }}))
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"$VERSION_NAME\"/" android/app/build.gradle
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+
       - name: Build Release APK
         run: |
           cd android
@@ -37,8 +45,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: android/app/build/outputs/apk/release/*.apk
-          tag_name: build-${{ github.run_number }}-${{ github.sha }}
-          name: Release build-${{ github.run_number }}
+          tag_name: v${{ env.VERSION_NAME }}
+          name: Release ${{ env.VERSION_NAME }}
           draft: false
           prerelease: false
         env:

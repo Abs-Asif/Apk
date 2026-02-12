@@ -51,9 +51,9 @@ class MainActivity : AppCompatActivity() {
     private var isProcessing = false
 
     private fun getFormattedFileName(): String {
-        val sdf = SimpleDateFormat("dd-MM-yyyy_hh:mma", Locale.US)
-        val dateStr = sdf.format(Date()).lowercase()
-        return "PDF_$dateStr.pdf"
+        val sdf = SimpleDateFormat("dd MMMM yyyy hh_mm_ss a", Locale.US)
+        val dateStr = sdf.format(Date())
+        return "PDF $dateStr.pdf"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,7 +127,6 @@ class MainActivity : AppCompatActivity() {
         marginsToggleGroup.check(when(margin) {
             "Standard" -> R.id.btnStandard
             "Minimal" -> R.id.btnMinimal
-            "None" -> R.id.btnNone
             else -> R.id.btnStandard
         })
 
@@ -136,7 +135,6 @@ class MainActivity : AppCompatActivity() {
                 margin = when (checkedId) {
                     R.id.btnStandard -> "Standard"
                     R.id.btnMinimal -> "Minimal"
-                    R.id.btnNone -> "None"
                     else -> "Standard"
                 }
                 updatePreview()
@@ -176,7 +174,7 @@ class MainActivity : AppCompatActivity() {
             finishAndRemoveTask()
         }
 
-        findViewById<View>(R.id.activity_main_root)?.setOnClickListener {
+        findViewById<View>(R.id.background_dim)?.setOnClickListener {
             finishAndRemoveTask()
         }
         findViewById<View>(R.id.cardView)?.setOnClickListener {
@@ -297,8 +295,7 @@ class MainActivity : AppCompatActivity() {
 
         val marginMap = mapOf(
             "Standard" to "20mm",
-            "Minimal" to "10mm",
-            "None" to "0mm"
+            "Minimal" to "10mm"
         )
 
         val sizeMap = mapOf(
@@ -309,11 +306,21 @@ class MainActivity : AppCompatActivity() {
 
         val selectedSize = sizeMap[pSize] ?: "A4"
         val selectedMargin = marginMap[mType] ?: "20mm"
+        val pageHeight = when(pSize) {
+            "Letter" -> "279.4mm"
+            "Legal" -> "355.6mm"
+            else -> "297mm"
+        }
 
         val previewStyles = if (isPreview) """
             body {
                 width: 100%;
-                min-height: 100vh;
+                margin: 0;
+                padding: $selectedMargin;
+                box-sizing: border-box;
+                overflow-x: hidden;
+                background-image: linear-gradient(to bottom, transparent calc($pageHeight - 2px), #ccc calc($pageHeight - 2px), #ccc $pageHeight, transparent $pageHeight);
+                background-size: 100% $pageHeight;
             }
         """.trimIndent() else ""
 
@@ -333,7 +340,7 @@ class MainActivity : AppCompatActivity() {
                   }
                   @page {
                     size: $selectedSize;
-                    margin: 0;
+                    margin: ${if (isPreview) "0" else selectedMargin};
                   }
                   body {
                     font-size: ${fSize}pt;
@@ -341,12 +348,20 @@ class MainActivity : AppCompatActivity() {
                     line-height: 1.6;
                     color: #1a1a1a;
                     background-color: white;
-                    margin: $selectedMargin;
+                    margin: ${if (isPreview) selectedMargin else "0"};
                     text-align: ${textAlign.lowercase()};
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
                   }
                   $previewStyles
-                  h1, h2, h3, h4, h5, h6 { color: #333; margin-top: 1.5em; margin-bottom: 0.5em; }
-                  img { max-width: 100%; height: auto; }
+                  h1, h2, h3, h4, h5, h6 {
+                    color: #333;
+                    margin-top: 1.5em;
+                    margin-bottom: 0.5em;
+                    page-break-after: avoid;
+                    page-break-inside: avoid;
+                  }
+                  img { max-width: 100%; height: auto; page-break-inside: avoid; display: block; margin: 1em auto; }
                   pre {
                     background: #f6f8fa;
                     padding: 16px;
@@ -355,6 +370,7 @@ class MainActivity : AppCompatActivity() {
                     white-space: pre-wrap;
                     word-wrap: break-word;
                     border: 1px solid #dfe1e4;
+                    page-break-inside: avoid;
                   }
                   code {
                     font-family: 'Courier New', Courier, monospace;
@@ -372,11 +388,13 @@ class MainActivity : AppCompatActivity() {
                     padding: 0 1em;
                     color: #57606a;
                     margin: 0 0 16px 0;
+                    page-break-inside: avoid;
                   }
                   table {
                     border-collapse: collapse;
                     width: 100%;
                     margin-bottom: 16px;
+                    page-break-inside: avoid;
                   }
                   th, td {
                     border: 1px solid #d0d7de;
@@ -399,6 +417,7 @@ class MainActivity : AppCompatActivity() {
                   .task-list-item { list-style-type: none; }
                   .task-list-item input { margin-right: 0.5em; }
                   .footnotes { font-size: 80%; color: #57606a; border-top: 1px solid #d0d7de; margin-top: 40px; }
+                  .katex-display { page-break-inside: avoid; }
                 </style>
               </head>
               <body>
