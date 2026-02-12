@@ -52,10 +52,10 @@ class MainActivity : AppCompatActivity() {
             if (sharedText != null) {
                 setupUI()
             } else {
-                finish()
+                finishAndRemoveTask()
             }
         } else {
-            setupUI()
+            finishAndRemoveTask()
         }
     }
 
@@ -74,11 +74,13 @@ class MainActivity : AppCompatActivity() {
         btnMinus.setOnClickListener {
             fontSize = maxOf(8, fontSize - 1)
             fontSizeLabel.text = getString(R.string.font_size_label, fontSize)
+            updatePreview()
         }
 
         btnPlus.setOnClickListener {
             fontSize = minOf(30, fontSize + 1)
             fontSizeLabel.text = getString(R.string.font_size_label, fontSize)
+            updatePreview()
         }
 
         pageSizeGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -88,6 +90,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.radioLegal -> "Legal"
                 else -> "A4"
             }
+            updatePreview()
         }
 
         marginsGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -97,7 +100,10 @@ class MainActivity : AppCompatActivity() {
                 R.id.radioNone -> "None"
                 else -> "Standard"
             }
+            updatePreview()
         }
+
+        updatePreview()
 
         btnSave.setOnClickListener {
             if (!isProcessing) {
@@ -112,11 +118,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnCancelTop.setOnClickListener {
-            finish()
+            finishAndRemoveTask()
         }
 
         findViewById<View>(R.id.activity_main_root)?.setOnClickListener {
-            finish()
+            finishAndRemoveTask()
         }
         findViewById<View>(R.id.cardView)?.setOnClickListener {
             // Consume
@@ -136,6 +142,13 @@ class MainActivity : AppCompatActivity() {
         val html = markdownToHtml(text, pageSize, margin, fontSize)
         isProcessing = true
         doPrint(html)
+    }
+
+    private fun updatePreview() {
+        val text = sharedText ?: ""
+        val html = markdownToHtml(text, pageSize, margin, fontSize, isPreview = true)
+        val previewWebView = findViewById<WebView>(R.id.previewWebView)
+        previewWebView?.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
     }
 
     private fun updateLoadingState(loading: Boolean) {
@@ -168,62 +181,64 @@ class MainActivity : AppCompatActivity() {
                     else -> Pair(595, 842) // A4
                 }
 
-                webView.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
-                webView.layout(0, 0, webView.measuredWidth, webView.measuredHeight)
+                webView.postDelayed({
+                    webView.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+                    webView.layout(0, 0, webView.measuredWidth, webView.measuredHeight)
 
-                val document = android.graphics.pdf.PdfDocument()
-                var pageNumber = 1
-                var currentHeight = 0
-                val totalHeight = webView.measuredHeight
-
-                if (totalHeight <= 0) {
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, "Content is empty", Toast.LENGTH_SHORT).show()
-                        updateLoadingState(false)
-                        isProcessing = false
-                        root.removeView(webView)
-                    }
-                    return
-                }
-
-                while (currentHeight < totalHeight) {
-                    val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
-                    val page = document.startPage(pageInfo)
-                    val canvas = page.canvas
-                    canvas.translate(0f, -currentHeight.toFloat())
-                    webView.draw(canvas)
-                    document.finishPage(page)
-                    currentHeight += height
-                    pageNumber++
-                }
-
-                val jobName = "MD_Export_${System.currentTimeMillis()}"
-                val tempFile = File(cacheDir, "$jobName.pdf")
-                try {
-                    FileOutputStream(tempFile).use { out ->
-                        document.writeTo(out)
-                    }
-                    document.close()
-                    val finalUri = saveToDownloads(tempFile, "$jobName.pdf")
-                    runOnUiThread {
-                        if (finalUri != null) {
-                            Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(this@MainActivity, "Failed to save to Downloads", Toast.LENGTH_SHORT).show()
+                    val totalHeight = webView.measuredHeight
+                    if (totalHeight <= 0) {
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "Content is empty", Toast.LENGTH_SHORT).show()
+                            updateLoadingState(false)
+                            isProcessing = false
+                            root.removeView(webView)
                         }
-                        root.removeView(webView)
-                        finish()
+                        return@postDelayed
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    runOnUiThread {
-                        Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                        updateLoadingState(false)
-                        isProcessing = false
-                        root.removeView(webView)
+
+                    val document = android.graphics.pdf.PdfDocument()
+                    var pageNumber = 1
+                    var currentHeight = 0
+
+                    while (currentHeight < totalHeight) {
+                        val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
+                        val page = document.startPage(pageInfo)
+                        val canvas = page.canvas
+                        canvas.translate(0f, -currentHeight.toFloat())
+                        webView.draw(canvas)
+                        document.finishPage(page)
+                        currentHeight += height
+                        pageNumber++
                     }
-                }
+
+                    val jobName = "MD_Export_${System.currentTimeMillis()}"
+                    val tempFile = File(cacheDir, "$jobName.pdf")
+                    try {
+                        FileOutputStream(tempFile).use { out ->
+                            document.writeTo(out)
+                        }
+                        document.close()
+                        val finalUri = saveToDownloads(tempFile, "$jobName.pdf")
+                        runOnUiThread {
+                            if (finalUri != null) {
+                                Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@MainActivity, "Failed to save to Downloads", Toast.LENGTH_SHORT).show()
+                            }
+                            root.removeView(webView)
+                            finishAndRemoveTask()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            updateLoadingState(false)
+                            isProcessing = false
+                            root.removeView(webView)
+                        }
+                    }
+                }, 200)
             }
         }
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
@@ -286,13 +301,13 @@ class MainActivity : AppCompatActivity() {
 
                 printManager.print(jobName, printAdapter, attributes)
                 isProcessing = false
-                finish()
+                finishAndRemoveTask()
             }
         }
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
     }
 
-    private fun markdownToHtml(text: String, pSize: String, mType: String, fSize: Int): String {
+    private fun markdownToHtml(text: String, pSize: String, mType: String, fSize: Int, isPreview: Boolean = false): String {
         val parser = Parser.builder().build()
         val document = parser.parse(text)
         val renderer = HtmlRenderer.builder().build()
@@ -313,11 +328,20 @@ class MainActivity : AppCompatActivity() {
         val selectedSize = sizeMap[pSize] ?: "A4"
         val selectedMargin = marginMap[mType] ?: "20mm"
 
+        val previewStyles = if (isPreview) """
+            body {
+                width: $selectedSize;
+                height: 100vh;
+                overflow: hidden;
+            }
+        """.trimIndent() else ""
+
         return """
             <!DOCTYPE html>
             <html>
               <head>
                 <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
                   @page {
                     size: $selectedSize;
@@ -329,7 +353,9 @@ class MainActivity : AppCompatActivity() {
                     line-height: 1.5;
                     color: #333;
                     background-color: white;
+                    margin: ${if (isPreview) selectedMargin else "0"};
                   }
+                  $previewStyles
                   img { max-width: 100%; height: auto; }
                   pre {
                     background: #f4f4f4;
