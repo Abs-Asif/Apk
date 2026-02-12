@@ -3,6 +3,7 @@ package com.mdtopdf
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private var sharedText: String? = null
     private var pageSize = "A4"
     private var margin = "Standard"
+    private var alignment = "Justify"
     private var fontSize = 12
     private var isProcessing = false
 
@@ -68,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         val btnCancelTop = findViewById<ImageButton>(R.id.btnCancelTop)
         val pageSizeGroup = findViewById<RadioGroup>(R.id.pageSizeGroup)
         val marginsGroup = findViewById<RadioGroup>(R.id.marginsGroup)
+        val alignmentGroup = findViewById<RadioGroup>(R.id.alignmentGroup)
 
         fontSizeLabel.text = getString(R.string.font_size_label, fontSize)
 
@@ -103,6 +106,17 @@ class MainActivity : AppCompatActivity() {
             updatePreview()
         }
 
+        alignmentGroup.setOnCheckedChangeListener { _, checkedId ->
+            alignment = when (checkedId) {
+                R.id.radioLeft -> "Left"
+                R.id.radioCenter -> "Center"
+                R.id.radioRight -> "Right"
+                R.id.radioJustify -> "Justify"
+                else -> "Justify"
+            }
+            updatePreview()
+        }
+
         updatePreview()
 
         btnSave.setOnClickListener {
@@ -131,24 +145,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleSave() {
         val text = sharedText ?: return
-        val html = markdownToHtml(text, pageSize, margin, fontSize)
+        val html = markdownToHtml(text, pageSize, margin, fontSize, alignment)
         isProcessing = true
         updateLoadingState(true)
-        savePdfInBackground(html)
+        savePdfInBackground(html) {
+            finishAndRemoveTask()
+        }
     }
 
     private fun handlePrint() {
         val text = sharedText ?: return
-        val html = markdownToHtml(text, pageSize, margin, fontSize)
+        val html = markdownToHtml(text, pageSize, margin, fontSize, alignment)
         isProcessing = true
-        doPrint(html)
+        updateLoadingState(true)
+        savePdfInBackground(html) {
+            doPrint(html)
+        }
     }
 
     private fun updatePreview() {
         val text = sharedText ?: ""
-        val html = markdownToHtml(text, pageSize, margin, fontSize, isPreview = true)
+        val html = markdownToHtml(text, pageSize, margin, fontSize, alignment, isPreview = true)
         val previewWebView = findViewById<WebView>(R.id.previewWebView)
-        previewWebView?.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        previewWebView?.settings?.allowFileAccess = true
+        previewWebView?.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
     }
 
     private fun updateLoadingState(loading: Boolean) {
@@ -165,22 +185,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun savePdfInBackground(html: String) {
+    private fun savePdfInBackground(html: String, onComplete: () -> Unit) {
         val webView = WebView(this)
-        // Add to view hierarchy to ensure it can render
+        webView.settings.allowFileAccess = true
         val root = findViewById<ViewGroup>(R.id.activity_main_root)
-        webView.layoutParams = ViewGroup.LayoutParams(1, 1)
+
+        val (width, height) = when (pageSize) {
+            "Letter" -> Pair(612, 792)
+            "Legal" -> Pair(612, 1008)
+            else -> Pair(595, 842) // A4
+        }
+
+        webView.layoutParams = ViewGroup.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT)
         webView.visibility = View.INVISIBLE
         root.addView(webView)
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
-                val (width, height) = when (pageSize) {
-                    "Letter" -> Pair(612, 792)
-                    "Legal" -> Pair(612, 1008)
-                    else -> Pair(595, 842) // A4
-                }
-
                 webView.postDelayed({
                     webView.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
@@ -197,12 +218,12 @@ class MainActivity : AppCompatActivity() {
                         return@postDelayed
                     }
 
-                    val document = android.graphics.pdf.PdfDocument()
+                    val document = PdfDocument()
                     var pageNumber = 1
                     var currentHeight = 0
 
                     while (currentHeight < totalHeight) {
-                        val pageInfo = android.graphics.pdf.PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
+                        val pageInfo = PdfDocument.PageInfo.Builder(width, height, pageNumber).create()
                         val page = document.startPage(pageInfo)
                         val canvas = page.canvas
                         canvas.translate(0f, -currentHeight.toFloat())
@@ -223,11 +244,9 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (finalUri != null) {
                                 Toast.makeText(this@MainActivity, "Saved to Downloads", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(this@MainActivity, "Failed to save to Downloads", Toast.LENGTH_SHORT).show()
                             }
                             root.removeView(webView)
-                            finishAndRemoveTask()
+                            onComplete()
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -238,10 +257,10 @@ class MainActivity : AppCompatActivity() {
                             root.removeView(webView)
                         }
                     }
-                }, 200)
+                }, 500)
             }
         }
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
     }
 
     private fun saveToDownloads(file: File, fileName: String): Uri? {
@@ -285,6 +304,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun doPrint(html: String) {
         val webView = WebView(this)
+        webView.settings.allowFileAccess = true
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 val printManager = getSystemService(Context.PRINT_SERVICE) as PrintManager
@@ -304,10 +324,10 @@ class MainActivity : AppCompatActivity() {
                 finishAndRemoveTask()
             }
         }
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL("file:///android_asset/", html, "text/html", "UTF-8", null)
     }
 
-    private fun markdownToHtml(text: String, pSize: String, mType: String, fSize: Int, isPreview: Boolean = false): String {
+    private fun markdownToHtml(text: String, pSize: String, mType: String, fSize: Int, textAlign: String, isPreview: Boolean = false): String {
         val parser = Parser.builder().build()
         val document = parser.parse(text)
         val renderer = HtmlRenderer.builder().build()
@@ -330,9 +350,8 @@ class MainActivity : AppCompatActivity() {
 
         val previewStyles = if (isPreview) """
             body {
-                width: $selectedSize;
-                height: 100vh;
-                overflow: hidden;
+                width: 100%;
+                min-height: 100vh;
             }
         """.trimIndent() else ""
 
@@ -343,17 +362,22 @@ class MainActivity : AppCompatActivity() {
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
+                  @font-face {
+                    font-family: 'Bornomala';
+                    src: url('fonts/Bornomala-Regular.ttf');
+                  }
                   @page {
                     size: $selectedSize;
                     margin: $selectedMargin;
                   }
                   body {
                     font-size: ${fSize}pt;
-                    font-family: sans-serif;
-                    line-height: 1.5;
-                    color: #333;
+                    font-family: 'Bornomala', sans-serif;
+                    line-height: 1.6;
+                    color: #1a1a1a;
                     background-color: white;
                     margin: ${if (isPreview) selectedMargin else "0"};
+                    text-align: ${textAlign.lowercase()};
                   }
                   $previewStyles
                   img { max-width: 100%; height: auto; }
